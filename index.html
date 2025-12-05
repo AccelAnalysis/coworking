@@ -1045,34 +1045,47 @@
 
     // Bounce video behavior: any <video class="bounce-video"> will play forward, then reverse, then forward, etc.
     (function() {
-      const videos = document.querySelectorAll("video.bounce-video");
+    const videos = document.querySelectorAll("video.bounce-video");
 
-      videos.forEach((vid) => {
-        let reverse = false;
+    videos.forEach((vid) => {
+      let direction = 1; // 1 = forward, -1 = reverse
 
-        // Ensure starting conditions
-        vid.playbackRate = 1;
+      // Make sure we start in a good spot
+      vid.playbackRate = 1;
 
-        vid.addEventListener("ended", () => {
-          reverse = !reverse;
+      vid.addEventListener("ended", () => {
+        // If video metadata isn't ready, bail
+        if (!vid.duration || isNaN(vid.duration)) {
+          vid.currentTime = 0;
+          vid.play();
+          return;
+        }
 
-          if (reverse) {
-            // Play backward
+        if (direction === 1) {
+          // Try to play in reverse
+          try {
             vid.playbackRate = -1;
-            vid.currentTime = vid.duration;
-          } else {
-            // Play forward
+            vid.currentTime = vid.duration - 0.01; // nudge just before the end
+            vid.play();
+            direction = -1;
+          } catch (e) {
+            // Some browsers (including Safari) don't support negative playbackRate.
+            // Fallback: just loop forward.
             vid.playbackRate = 1;
             vid.currentTime = 0;
+            vid.play();
+            direction = 1;
           }
-
-          vid.play().catch(() => {
-            // Autoplay may be blocked if not muted or not allowed by browser settings
-            // Ensure videos are muted + playsinline as in the HTML examples
-          });
-        });
+        } else {
+          // Back to forward
+          vid.playbackRate = 1;
+          vid.currentTime = 0;
+          vid.play();
+          direction = 1;
+        }
       });
-    })();
-  </script>
+    });
+  })();
+</script>
 </body>
 </html>
